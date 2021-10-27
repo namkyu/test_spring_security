@@ -4,6 +4,7 @@ import com.example.demo.common.JwtProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.web.DefaultRedirectStrategy;
 import org.springframework.security.web.RedirectStrategy;
@@ -32,8 +33,12 @@ public class TokenSuccessHandler implements AuthenticationSuccessHandler {
 
     private void addTokenCookie(HttpServletResponse response, Authentication authentication) {
         User user = (User) authentication.getPrincipal();
-        String jwt = tokenHelper.generateToken(user.getUsername());
+        String username = user.getUsername();
+        String[] authorities = user.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .toArray(String[]::new);
 
+        String jwt = tokenHelper.generateToken(username, authorities);
         Cookie sessionCookie = new Cookie(jwtProperties.getCookieName(), jwt);
         response.addCookie(sessionCookie);
     }

@@ -11,8 +11,8 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter;
 import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 
 @RequiredArgsConstructor
 @Configuration
@@ -38,7 +38,7 @@ public class SecurityJwtConfig extends WebSecurityConfigurerAdapter {
 
     @Bean
     public TokenAuthenticationFilter jwtAuthenticationFilter() {
-        return new TokenAuthenticationFilter(tokenHelper, userDetailsService, jwtProperties);
+        return new TokenAuthenticationFilter(tokenHelper, jwtProperties);
     }
 
     @Bean
@@ -67,7 +67,7 @@ public class SecurityJwtConfig extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-        http.addFilterBefore(jwtAuthenticationFilter(), OAuth2AuthorizationRequestRedirectFilter.class)
+        http.addFilterBefore(jwtAuthenticationFilter(), BasicAuthenticationFilter.class)
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
 
                 .and()

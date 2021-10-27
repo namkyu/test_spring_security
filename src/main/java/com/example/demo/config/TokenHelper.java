@@ -1,7 +1,9 @@
 package com.example.demo.config;
 
 
+import com.example.demo.common.JwtProperties;
 import io.jsonwebtoken.*;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Value;
@@ -9,42 +11,50 @@ import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 
 @Slf4j
+@RequiredArgsConstructor
 @Component
 public class TokenHelper {
 
     @Value("${app.name}")
     private String appName;
 
-    @Value("${jwt.secret}")
-    private String secret;
-
-    @Value("${jwt.expires_in}")
-    private int expiresIn;
+    private final JwtProperties jwtProperties;
 
     private SignatureAlgorithm SIGNATURE_ALGORITHM = SignatureAlgorithm.HS512;
 
     public String getUsernameFromToken(String token) {
-        Claims claims = getClaimsFromToken(token, secret);
+        Claims claims = getClaimsFromToken(token, jwtProperties.getSecret());
         String username = claims.getSubject();
         return username;
     }
 
-    public String generateToken(String username) {
+    public Claims getClaims(String token) {
+        Claims claims = getClaimsFromToken(token, jwtProperties.getSecret());
+        return claims;
+    }
+
+    public String generateToken(String username, String[] authorities) {
+        Map<String, Object> claim = new HashMap<>();
+        claim.put("iss", appName);
+        claim.put("sub", username);
+        claim.put("role", authorities);
+        claim.put("exp", generateExpirationDate());
+        claim.put("iat", generateCurrentDate());
+
         return Jwts.builder()
-                .setIssuer(appName)
-                .setSubject(username)
-                .setIssuedAt(generateCurrentDate())
-                .setExpiration(generateExpirationDate())
-                .signWith(SIGNATURE_ALGORITHM, secret)
+                .setClaims(claim)
+                .signWith(SIGNATURE_ALGORITHM, jwtProperties.getSecret())
                 .compact();
     }
 
     public boolean validateToken(String token) {
         try {
-            Jwts.parser().setSigningKey(secret).parseClaimsJws(token);
+            Jwts.parser().setSigningKey(jwtProperties.getSecret()).parseClaimsJws(token);
             return true;
         } catch (SecurityException | MalformedJwtException e) {
             log.info("잘못된 JWT 서명입니다.");
@@ -78,6 +88,7 @@ public class TokenHelper {
     }
 
     private Date generateExpirationDate() {
+        Integer expiresIn = jwtProperties.getExpiresIn();
         return new Date(getCurrentTimeMillis() + Duration.ofDays(expiresIn).toMillis());
     }
 }
